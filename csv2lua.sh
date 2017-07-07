@@ -13,12 +13,12 @@ set -e
 fin=$1
 outdir=${2-"."}
 
-flua="${outdir}/${fin/\.*/\.lua}"
+flua="${outdir}/${fin/\.csv/\.lua}"
 
 basepath=$(cd `dirname $0`;pwd)
 
 tname=${fin/*\//}
-tname=${tname/\.*/}
+tname=${tname/\.csv/}
 
 uname=$(uname)
 sed=sed
@@ -44,7 +44,7 @@ $sed -e '1a\\nlocal enum=(function() local i = 0;return function()i = i+1;return
 $sed -e '1i\-- '"author: $(whoami)\n-- date: $(date)"'\n-- usage: T'${tname}'[id][KEY]\n' -i $flua
 
 # 设置元表以属性方式读取子表
-$sed -e '$a\}\nfor k,v in pairs(T'${tname}') do\n\tif k ~= "head" and type(v) == "table" then\n\t\tsetmetatable(v,{__index=function(t,kk)\n\t\t\tif T'${tname}'.head[kk] ~= nil then\n\t\t\t\treturn t[T'${tname}'.head[kk]]\n\t\t\telse\n\t\t\t\tprint("err: \\"T'${tname}'\\" have no field ["..kk.."]")\n\t\t\t\treturn nil\n\t\t\tend\n\t\tend})\n\tend\nend\nreturn T'${tname}'' -i $flua
+$sed -e '$a\}\nfor k,v in pairs(T'${tname}') do\n\tif k ~= "head" and type(v) == "table" then\n\t\tsetmetatable(v,{\n\t\t__newindex=function(t,kk) print("warning: attempte to change a readonly table") end,\n\t\t__index=function(t,kk)\n\t\t\tif T'${tname}'.head[kk] ~= nil then\n\t\t\t\treturn t[T'${tname}'.head[kk]]\n\t\t\telse\n\t\t\t\tprint("err: \\"T'${tname}'\\" have no field ["..kk.."]")\n\t\t\t\treturn nil\n\t\t\tend\n\t\tend})\n\tend\nend\nreturn T'${tname}'' -i $flua
 
 # 预览
 # less $flua
